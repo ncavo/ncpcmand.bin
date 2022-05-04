@@ -1,0 +1,23 @@
+#!/bin/sh
+if [ $# -eq 0 ]; then
+	echo "param error"
+elif [ "$1" = "status" ]; then
+	grep 'status' '/etc/dhcp/dhcpd.conf'
+	systemctl status isc-dhcp-server --no-pager -n 0
+	systemctl status tgt --no-pager -n 0
+	zfs list -r
+elif [ "$1" = "tgt" ]; then
+	sudo tgtadm --lld iscsi --op show --mode target
+elif [ "$1" = "conn" ]; then
+	sudo tgtadm --lld iscsi --op show --mode conn --tid $2
+elif [ "$1" = "reset" ]; then
+	sudo systemctl stop ncpcmand
+	sudo systemctl stop isc-dhcp-server
+	sudo systemctl stop tgt
+	sudo sed -i 's/#\[ncpcmand\]status.*/#[ncpcmand]status:empty/g' /etc/dhcp/dhcpd.conf > /dev/null 2>&1
+	sudo rm /etc/tgt/conf.d/ncpcmand.conf
+	sudo zfs destroy -fR zfs/master1@snap > /dev/null 2>&1
+	sudo zfs destroy -fR zfs/master2@snap > /dev/null 2>&1
+else
+	echo "param error"
+fi
